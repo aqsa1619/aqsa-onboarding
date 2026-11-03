@@ -1,5 +1,5 @@
-## 📁 Repository Structure
-
+## Repository Structure
+```text
 aqsa-onboarding/
 ├── src/                          # Main Next.js App Router source directory
 │   ├── app/                      # App router routes and global layouts
