@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { services } from "@/lib/services";
+import { services } from "@/lib/services"; 
 
 export default async function ServiceDetailPage({
   params,
