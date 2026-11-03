@@ -8,7 +8,8 @@
 | `src/app/admin/login/page.tsx` and `LoginForm.tsx` | The admin login page, at /admin/login. page.tsx is the page itself, and if you're already logged in it sends you to the dashboard. LoginForm.tsx is the email and password form. |
 | `src/app/admin/(dashboard)/layout.tsx` and its folders | The frame for all admin pages. It checks you are logged in, and if not, it sends you to the login page. It also shows the side menu. The (dashboard) brackets are only for organizing files, so they don't appear in the link. |
 | `src/app/admin/actions.ts` ("use server") | Starts with "use server", which means it runs only on server, never in the visitor's browser. It has no link of its own. It holds all the "save" jobs for the admin: save homepage, save pages, save menu, manage users, log out. |
-| `src/app/api/admin/login/route.ts` and `api/admin/upload` | Checks the email and password when someone logs in. If they're right, it keeps the person logged in for 7 days. The link is /api/admin/login. |
+| `src/app/api/admin/login/route.ts` and `api/admin/upload` | Login (/api/admin/login) -> checks the email and password when someone logs in. If they're right, it keeps the person logged in for 7 days.
+Upload (/api/admin/upload) -> lets logged-in team members (admin, editor, moderator) upload images or MP4 videos from the admin area. Files up to 10 MB are accepted, saved to storage, and the file's web address is sent back so it can be used on a page |
 | `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`, `icon.svg` | src/app/sitemap.ts -> Makes /sitemap.xml, a list of the site's pages for Google. It only includes pages that are published and meant to be found.
 src/app/robots.ts -> Makes /robots.txt. It tells search engines and AI tools what they may visit.
 src/app/opengraph-image.tsx -> Makes the preview picture that appears when someone shares a link to the site.
