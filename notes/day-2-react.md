@@ -1,0 +1,6 @@
+# Day 2: React Interactive State & Component Architecture
+
+- **`use client` Necessity**: The `/tasks` page requires `"use client"` because it utilizes interactive browser APIs (`localStorage`), React hooks (`useState`, `useEffect`), and event listeners (`onSubmit`, `onChange`). In contrast, the static `/about` page contains no interactive logic or state and can be rendered purely on the server for speed and smaller JS bundles.
+- **`useState`**: Holds and updates dynamic component data across user interactions (e.g., storing the list of tasks, current filter selection, or input form text). Changing state triggers a component re-render to update the visual UI.
+- **`useEffect`**: Manages asynchronous side effects outside the core rendering flow. Here, it loads persisted data from `localStorage` (or fetches from `/api/tasks`) when the component mounts, and syncs updated task lists back to `localStorage`.
+- **State Location & Lifting**: The primary `tasks` state lives in `TasksPage` (`src/app/(marketing)/tasks/page.tsx`). Lifting state to the parent wrapper allows child components (`TaskList`, `TaskForm`, counter header) to share access to data without duplicating state.
