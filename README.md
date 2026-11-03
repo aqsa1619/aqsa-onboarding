@@ -1,4 +1,4 @@
-# Beetrix Agency Onboarding & Training Repository
+# Onboarding & Training Repository
 
 This repository contains the completed **Day 1 Assessment** tasks for the Beetrix360 onboarding process. It includes the Next.js practice application ("Beetrix Agency"), architecture notes, website structure mapping, and Python revision exercises.
 
