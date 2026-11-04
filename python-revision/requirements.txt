@@ -4,3 +4,5 @@ idna==3.20
 requests==2.34.2
 urllib3==2.8.0
 pytest
+pydantic==2.14.2
+pydantic_core==2.50.2
