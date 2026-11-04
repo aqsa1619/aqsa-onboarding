@@ -8,3 +8,10 @@ export interface Task {
   createdAt: string;
 }
 
+export interface Invoice {
+  id: number;
+  client: string;
+  amount: number;
+  due_date: string;
+  paid: boolean;
+}
