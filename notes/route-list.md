@@ -6,6 +6,8 @@ When we run `npm run build`, Next.js checks every page and splits them into two 
   - `/about` (About page)
   - `/admin` (Admin page)
   - `/api/hello` (API route)
+  - `/api/invoices` (API route returning 5 made-up invoices)
+  - `/invoices` (Invoice table page with loading, error and table states)
   - `/services` (Services list page)
   - `/tasks` (Task tracker page)
 
