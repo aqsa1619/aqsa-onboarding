@@ -83,8 +83,10 @@ export default function TasksPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-slate-100">Task Tracker</h1>
-      <p className="mb-6 text-sm text-slate-400">
+      <h1 className="mb-2 text-3xl font-bold text-slate-900 dark:text-slate-100">
+        Task Tracker
+      </h1>
+      <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
         Manage onboarding tasks with local browser persistence.
       </p>
 
@@ -121,4 +123,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
