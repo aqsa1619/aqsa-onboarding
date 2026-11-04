@@ -26,5 +26,12 @@ export async function GET() {
     },
   ];
 
+  // To practise the loading state, uncomment:
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  // To practise the error state / 500, uncomment:
+  // return NextResponse.json({ error: "boom" }, { status: 500 });
+
   return NextResponse.json(starterTasks);
 }
+
