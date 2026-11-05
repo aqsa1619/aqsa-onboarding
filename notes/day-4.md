@@ -38,3 +38,13 @@
 - **Status**: `200 OK`
 - **Details**: Successfully connects to FastAPI backend via CORS and renders live Python records in a table component.
 ![Next.js Invoices Table](./notes/nextjs-invoices.jpg)
+
+### 6. Next.js Invoices Table & Form (`/invoices`)
+- **Status**: `200 OK` & `422 Unprocessable Entity` Handled
+- **Details**: Successfully connects to FastAPI via CORS, displays live records[cite: 7, 8], handles successful `POST` submissions with paid status[cite: 7, 8], and catches/displays FastAPI validation errors on the UI[cite: 9].
+
+**Success State (Invoice Created & Paid Status):**
+![Invoice Form Success](./notes/invoice-form-success.jpg)
+
+**Validation Error State (422 Error Handling):**
+![Invoice Form 422 Error](./notes/invoice-form-error.jpg)
