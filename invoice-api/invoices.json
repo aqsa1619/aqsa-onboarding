@@ -4,5 +4,29 @@
         "amount": 1500.5,
         "due_date": "2026-12-31",
         "paid": false
+    },
+    {
+        "client": "Global Tech",
+        "amount": 250.0,
+        "due_date": "2026-12-31",
+        "paid": false
+    },
+    {
+        "client": "tech ",
+        "amount": 550.0,
+        "due_date": "2026-11-23",
+        "paid": false
+    },
+    {
+        "client": "tech mart",
+        "amount": 1000.0,
+        "due_date": "2026-11-30",
+        "paid": false
+    },
+    {
+        "client": "global",
+        "amount": 700.0,
+        "due_date": "2026-11-27",
+        "paid": true
     }
 ]

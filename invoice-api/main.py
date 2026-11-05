@@ -70,7 +70,7 @@ def create_invoice(invoice_in: InvoiceIn):
             client=invoice_in.client,
             amount=invoice_in.amount,
             due_date=invoice_in.due_date,
-            paid=getattr(invoice_in, "paid", False)
+            paid=invoice_in.paid  # <-- Change this from getattr to invoice_in.paid
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
