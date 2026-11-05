@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from datetime import date
 
@@ -8,6 +9,20 @@ import store
 from report import build_report
 
 app = FastAPI(title="Invoice API", version="1.0.0")
+
+# Configure CORS for your frontend
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DB_FILE = "invoices.json"
 
@@ -47,6 +62,7 @@ def get_invoice(id: int):
         due_date=inv.due_date,
         paid=inv.paid
     )
+
 @app.post("/api/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
 def create_invoice(invoice_in: InvoiceIn):
     try:

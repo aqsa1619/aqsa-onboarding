@@ -33,3 +33,8 @@
 * **Status**: `200 OK`
 * **Details**: Computes financial metrics (counts, totals, paid vs. unpaid).
 ![Invoice Report](./notes/invoices-report.jpg)
+
+### 6. Next.js Frontend (`/invoices`)
+- **Status**: `200 OK`
+- **Details**: Successfully connects to FastAPI backend via CORS and renders live Python records in a table component.
+![Next.js Invoices Table](./notes/nextjs-invoices.jpg)

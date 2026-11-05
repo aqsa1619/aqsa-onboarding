@@ -38,7 +38,7 @@ def load_invoices(path: str) -> list[Invoice]:
     invoices = []
 
     for item in data:
-        invoice = Invoice(
+        invoice = Invoice( 
             client=item["client"],
             amount=item["amount"],
             due_date=date.fromisoformat(item["due_date"]),

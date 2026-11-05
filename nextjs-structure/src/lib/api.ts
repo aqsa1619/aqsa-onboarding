@@ -1,10 +1,11 @@
-export async function apiGet<T>(path: string): Promise<T> {
-    const response = await fetch(path);
+  const API_BASE_URL = "http://localhost:8000";
+
+export async function apiGet<T>(endpoint: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`);
   
-    if (!response.ok) {
-      throw new Error(`API error: Status ${response.status}`);
-    }
-  
-    return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch from backend: ${response.statusText}`);
   }
   
+  return response.json();
+}
