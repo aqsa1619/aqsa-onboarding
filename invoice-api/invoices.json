@@ -1,0 +1,8 @@
+[
+    {
+        "client": "Acme Corp",
+        "amount": 1500.5,
+        "due_date": "2026-12-31",
+        "paid": false
+    }
+]
