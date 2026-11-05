@@ -28,5 +28,11 @@
         "amount": 700.0,
         "due_date": "2026-11-27",
         "paid": true
+    },
+    {
+        "client": "Test Client",
+        "amount": 500.0,
+        "due_date": "2026-12-31",
+        "paid": true
     }
 ]
