@@ -26,8 +26,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (keep the real one private, share the example)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,6 +40,11 @@ next-env.d.ts
 # Python virtual environment & cache
 .venv/
 venv/
+env/
 ENV/
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Databases (local data and test data)
+*.db

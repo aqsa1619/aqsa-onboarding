@@ -11,13 +11,14 @@ aqsa-onboarding/
 │   │   │   │   └── tasks/       # /tasks interactive task list tracker
 │   │   │   ├── admin/           # /admin portal route and layout
 │   │   │   ├── api/             # Backend API routes (/api/hello, /api/tasks, /api/invoices)
-│   │   │   ├── invoices/        # /invoices page (loading, error, table and add-invoice form)
+│   │   │   ├── invoices/        # /invoices page (table and add-invoice form, sends the login token)
+│   │   │   ├── login/           # /login page (email and password form)
 │   │   │   ├── layout.tsx       # Global root layout
 │   │   │   ├── page.tsx         # Homepage
 │   │   │   └── not-found.tsx    # Global custom 404 fallback page
 │   │   ├── components/          # Reusable UI components (Header.tsx, tasks/)
 │   │   └── lib/                 # Data models and utility functions
-│   │       ├── api.ts           # Typed fetch helper: apiGet<T>(path)
+│   │       ├── api.ts           # Fetch helpers: apiGet<T>, login, getToken, logout
 │   │       └── types.ts         # Shared TypeScript types (Task, Invoice)
 │   ├── tsconfig.json            # TypeScript alias setup (@/* -> ./src/*)
 │   └── package.json             # Next.js dependencies and scripts
@@ -42,17 +43,25 @@ aqsa-onboarding/
 │   ├── utils.py                 # Shared helper module
 │   ├── clients.json             # Sample JSON data file
 │   └── requirements.txt         # Python dependencies
-├── invoice-api/                 # FastAPI invoice API (Day 4, own venv)
+├── invoice-api/                 # FastAPI invoice API (own venv, SQLite database)
 │   ├── tests/
-│   │   └── test_api.py          # TestClient tests for the API
-│   ├── main.py                  # FastAPI app: endpoints, CORS, dependency
-│   ├── models.py                # Invoice dataclass (from invoice_tool)
-│   ├── schemas.py               # Pydantic models: InvoiceIn, InvoiceOut
-│   ├── store.py                 # JSON persistence handler (from invoice_tool)
-│   ├── report.py                # Financial summary generator (from invoice_tool)
+│   │   ├── test_api.py          # TestClient tests for the invoice endpoints
+│   │   └── test_auth.py         # Login, token and protected-route tests
+│   ├── main.py                  # FastAPI app: routes, CORS, login, invoices, report jobs
+│   ├── auth.py                  # bcrypt hashing, JWT creation, current_user dependency
+│   ├── db.py                    # Database engine, SessionLocal and get_db (session per request)
+│   ├── db_models.py             # Tables: InvoiceRow, UserRow, JobRow
+│   ├── models.py                # Invoice dataclass with business rules (amount > 0)
+│   ├── schemas.py               # Pydantic models: InvoiceIn, InvoiceOut, LoginIn
+│   ├── report.py                # Financial summary generator
+│   ├── worker.py                # Background worker that runs queued report jobs
+│   ├── seed_user.py             # Creates the first user (run once)
+│   ├── import_json.py           # Imports the old invoices.json into the database (run once)
+│   ├── store.py                 # Old JSON handler, now used only by import_json.py
 │   ├── pytest.ini               # Lets pytest import the project files
-│   ├── requirements.txt         # API dependencies (fastapi, uvicorn, httpx, pytest)
-│   └── invoices.json            # Created automatically when the first invoice is added
+│   ├── requirements.txt         # API dependencies
+│   ├── .env.example             # Names of the settings, with fake values (copy to .env)
+│   └── invoices.json            # Old JSON data, imported once
 └── notes/                       # Documentation and assessment deliverables
     ├── structure-basics.md      # Core Next.js App Router concept breakdown
     ├── website-structure-map.md # 12-row structural mapping of beetrix360-website (Part C)
@@ -61,8 +70,12 @@ aqsa-onboarding/
     ├── day-2-react.md           # Day 2 React state, hooks, and architecture notes
     ├── day-4.md                 # Day 4 FastAPI notes and concept answers
     ├── docs.png                 # Screenshot of the API /docs page
-    └── form-422.png             # Screenshot of the form showing a 422 error
+    ├── form-422.png             # Screenshot of the form showing a 422 error
+    ├── day-5.md                 # Day 5 database, login and background job notes
+    └── task-*.png               # Day 5 screenshots (login 401, token header, job queued/done, tests)
 ```
+
+Files that are created locally and never committed: `invoice-api/.env` (real secret), `invoice-api/invoice.db` (database) and `invoice-api/test.db` (test database). They are listed in `.gitignore`.
 
 ## How to Run Each Part
 
@@ -81,7 +94,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 in your browser to view the application. The interactive task tracker is at `/tasks` and the invoice table is at `/invoices`.
+Open http://localhost:3000 in your browser to view the application. The interactive task tracker is at `/tasks`, the login page is at `/login` and the invoice table is at `/invoices`.
 
 To verify and generate a production build:
 
@@ -113,18 +126,19 @@ pip install -r requirements.txt
 python 7_main.py
 python 8_requests.py
 ```
-## 3. Python Invoice Tool
+
+### 3. Python Invoice Tool
 
 A CLI tool for creating and managing invoices with JSON storage, report generation, Pydantic validation, and automated testing.
 
-### Features
+#### Features
 
 - **Add**: Create and store new invoices
 - **List**: Display all recorded invoices
 - **Report**: Generate summaries and payment totals
 - **Validate**: Check invoice data with Pydantic before it is used
 
-### Pydantic Schemas
+#### Pydantic Schemas
 
 The schemas live in `python-revision/invoice_tool/schemas.py`:
 
@@ -133,7 +147,7 @@ The schemas live in `python-revision/invoice_tool/schemas.py`:
 
 Bad data raises a clear `ValidationError` that names each invalid field.
 
-### Usage
+#### Usage
 
 Navigate into the invoice tool directory (with the virtual environment active):
 
@@ -144,7 +158,7 @@ cd python-revision/invoice_tool
 python main.py
 ```
 
-### Run the Tests
+#### Run the Tests
 
 ```bash
 cd python-revision/invoice_tool
@@ -157,9 +171,11 @@ Use `python -m pytest` rather than plain `pytest` so the `invoice_tool` modules 
 
 ### 4. Invoice API (`invoice-api/`)
 
-A small web API that turns the invoice tool into endpoints the Next.js `/invoices` page can call.
+A web API that turns the invoice tool into endpoints the Next.js `/invoices` page can call. Since Day 5 it stores data in a **SQLite database** (through SQLAlchemy), protects invoice creation with **login (bcrypt + JWT)**, and runs report jobs in a **background worker**.
 
 The API has its own virtual environment, separate from `python-revision/`.
+
+#### Setup (first time only)
 
 ```bash
 # Move into the API folder
@@ -171,42 +187,97 @@ source .venv/bin/activate    # On macOS/Linux
 # .venv\Scripts\activate     # On Windows Command Prompt / PowerShell
 
 # 2. Install the API packages
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
-# 3. Start the API on port 8000
-uvicorn main:app --reload --port 8000
+# 3. Create your private settings file from the example
+cp .env.example .env
+
+# 4. Generate a secret key and paste it into .env as SECRET_KEY
+python -c "import secrets; print(secrets.token_hex(32))"
+
+# 5. Create the first user (admin@test.com / admin123, practice login only)
+python seed_user.py
+
+# 6. Optional: import the old invoices.json into the database (run once)
+python import_json.py
 ```
 
-Open http://localhost:8000/docs to try every endpoint in the browser.
+`.env` holds the real secret and is never committed. `.env.example` is committed and shows the setting names with fake values:
 
-To see the whole thing working together, keep two terminals open:
+| Setting | What it is |
+|---------|------------|
+| `SECRET_KEY` | Long random text used to sign login tokens |
+| `DATABASE_URL` | Database address. `sqlite:///./invoice.db` means a file called `invoice.db` in this folder |
+
+The database file `invoice.db` is created automatically the first time the API starts.
+
+#### Start everything
+
+Keep three terminals open:
 
 | Terminal | Folder | Command | Address |
 |----------|--------|---------|---------|
 | 1 | `invoice-api/` | `uvicorn main:app --reload --port 8000` | http://localhost:8000/docs |
-| 2 | `nextjs-structure/` | `npm run dev` | http://localhost:3000/invoices |
+| 2 | `invoice-api/` | `python worker.py` | runs report jobs (needed only for reports) |
+| 3 | `nextjs-structure/` | `npm run dev` | http://localhost:3000/invoices |
 
+Open http://localhost:8000/docs to try every endpoint in the browser. For protected endpoints, log in with `POST /api/auth/login`, copy the `access_token`, click **Authorize** and paste it.
 
-### Endpoints
+#### How login works
 
-| Method | Path | What it does | Success | Errors |
-|--------|------|--------------|---------|--------|
-| GET | `/api/health` | Check the API is running | 200 | |
-| GET | `/api/invoices` | List invoices. Optional filter: `?paid=true` or `?paid=false` | 200 | |
-| GET | `/api/invoices/{id}` | Get one invoice | 200 | 404 if it does not exist |
-| POST | `/api/invoices` | Add an invoice (`InvoiceIn` in, `InvoiceOut` out) | 201 | 422 if the data is wrong |
-| GET | `/api/invoices/report` | Totals: count, total, paid and unpaid amounts | 200 | |
+1. `POST /api/auth/login` checks the email and password. Passwords are stored only as bcrypt hashes.
+2. If they match, the API returns a signed **JWT** that expires after 60 minutes.
+3. The Next.js app keeps the token in `localStorage` and sends it as `Authorization: Bearer <token>`.
+4. The `current_user` dependency checks the signature and expiry. A missing, edited or expired token gives **401**.
 
-### Run the API Tests
+#### How report jobs work
+
+1. `POST /api/reports` saves a job with status `queued` and returns straight away.
+2. `worker.py` (a separate program) finds the oldest queued job, sets it to `running`, builds the report, saves the result and sets `done` (or `failed` on error).
+3. `GET /api/reports/{id}` shows the current status and, when finished, the result.
+
+If the worker is not running, jobs stay `queued`.
+
+#### Endpoints
+
+| Method | Path | What it does | Needs token | Success | Errors |
+|--------|------|--------------|-------------|---------|--------|
+| GET | `/api/health` | Check the API is running | No | 200 | |
+| POST | `/api/auth/login` | Log in with email and password, returns a token | No | 200 | 401 wrong email or password |
+| GET | `/api/invoices` | List invoices | No | 200 | |
+| GET | `/api/invoices/{id}` | Get one invoice | No | 200 | 404 if it does not exist |
+| POST | `/api/invoices` | Add an invoice (`InvoiceIn` in, `InvoiceOut` out) | **Yes** | 201 | 401 no or bad token, 422 if the data is wrong |
+| GET | `/api/invoices/report` | Totals: count, total, paid and unpaid amounts (calculated inside the request) | No | 200 | |
+| POST | `/api/reports` | Create a report job (status `queued`) | **Yes** | 201 | 401 |
+| GET | `/api/reports/{id}` | Show a job's status and result | **Yes** | 200 | 401, 404 if the job does not exist |
+
+#### Database tables
+
+| Table | Columns |
+|-------|---------|
+| `invoices` | `id` (primary key), `client`, `amount`, `due_date`, `paid` |
+| `users` | `id` (primary key), `email` (unique), `password_hash`, `role` (`admin` or `editor`) |
+| `jobs` | `id` (primary key), `status`, `result`, `user_id` (foreign key to `users`), `created_at` |
+
+To look at the data:
+
+```bash
+sqlite3 invoice.db "select * from invoices;"
+sqlite3 invoice.db "select id, status, user_id from jobs;"
+```
+
+#### Run the API Tests
 
 ```bash
 cd invoice-api
 source .venv/bin/activate
 
 # Run the API tests
-pytest -q
+python -m pytest -v
 ```
 
-The tests use FastAPI's `TestClient`, so no browser or running server is needed. They cover health, list, create (201), get one, 404, 422 (three cases), the `paid` filter, the report route and the CORS header.
+The tests use FastAPI's `TestClient`, so no browser or running server is needed. They run against a separate `test.db`, so real data is never touched.
 
-`pytest.ini` in this folder lets plain `pytest` work here, so there is no need for `python -m pytest`.
+- `tests/test_api.py`: health, list, create (201, with a token), 404 and 422.
+- `tests/test_auth.py`: login works, wrong password gives 401, a protected route needs a token, an unknown email, a fake token and an edited token are rejected, and a new report job starts as `queued`.
+- delete the old test database with `rm -f test.db` and run the tests again.
