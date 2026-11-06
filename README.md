@@ -11,7 +11,7 @@ aqsa-onboarding/
 │   │   │   │   └── tasks/       # /tasks interactive task list tracker
 │   │   │   ├── admin/           # /admin portal route and layout
 │   │   │   ├── api/             # Backend API routes (/api/hello, /api/tasks, /api/invoices)
-│   │   │   ├── invoices/        # /invoices page (loading, error and table states)
+│   │   │   ├── invoices/        # /invoices page (loading, error, table and add-invoice form)
 │   │   │   ├── layout.tsx       # Global root layout
 │   │   │   ├── page.tsx         # Homepage
 │   │   │   └── not-found.tsx    # Global custom 404 fallback page
@@ -42,12 +42,26 @@ aqsa-onboarding/
 │   ├── utils.py                 # Shared helper module
 │   ├── clients.json             # Sample JSON data file
 │   └── requirements.txt         # Python dependencies
+├── invoice-api/                 # FastAPI invoice API (Day 4, own venv)
+│   ├── tests/
+│   │   └── test_api.py          # TestClient tests for the API
+│   ├── main.py                  # FastAPI app: endpoints, CORS, dependency
+│   ├── models.py                # Invoice dataclass (from invoice_tool)
+│   ├── schemas.py               # Pydantic models: InvoiceIn, InvoiceOut
+│   ├── store.py                 # JSON persistence handler (from invoice_tool)
+│   ├── report.py                # Financial summary generator (from invoice_tool)
+│   ├── pytest.ini               # Lets pytest import the project files
+│   ├── requirements.txt         # API dependencies (fastapi, uvicorn, httpx, pytest)
+│   └── invoices.json            # Created automatically when the first invoice is added
 └── notes/                       # Documentation and assessment deliverables
     ├── structure-basics.md      # Core Next.js App Router concept breakdown
     ├── website-structure-map.md # 12-row structural mapping of beetrix360-website (Part C)
     ├── route-list.md            # Production build route summary (Static vs Dynamic)
     ├── route-list.png           # Screenshot of terminal build output
-    └── day-2-react.md           # Day 2 React state, hooks, and architecture notes
+    ├── day-2-react.md           # Day 2 React state, hooks, and architecture notes
+    ├── day-4.md                 # Day 4 FastAPI notes and concept answers
+    ├── docs.png                 # Screenshot of the API /docs page
+    └── form-422.png             # Screenshot of the form showing a 422 error
 ```
 
 ## How to Run Each Part
@@ -99,8 +113,7 @@ pip install -r requirements.txt
 python 7_main.py
 python 8_requests.py
 ```
-
-## Python Invoice Tool
+## 3. Python Invoice Tool
 
 A CLI tool for creating and managing invoices with JSON storage, report generation, Pydantic validation, and automated testing.
 
@@ -141,3 +154,59 @@ python -m pytest
 ```
 
 Use `python -m pytest` rather than plain `pytest` so the `invoice_tool` modules can be imported.
+
+### 4. Invoice API (`invoice-api/`)
+
+A small web API that turns the invoice tool into endpoints the Next.js `/invoices` page can call.
+
+The API has its own virtual environment, separate from `python-revision/`.
+
+```bash
+# Move into the API folder
+cd invoice-api
+
+# 1. Create and activate its own virtual environment
+python3 -m venv .venv
+source .venv/bin/activate    # On macOS/Linux
+# .venv\Scripts\activate     # On Windows Command Prompt / PowerShell
+
+# 2. Install the API packages
+pip install -r requirements.txt
+
+# 3. Start the API on port 8000
+uvicorn main:app --reload --port 8000
+```
+
+Open http://localhost:8000/docs to try every endpoint in the browser.
+
+To see the whole thing working together, keep two terminals open:
+
+| Terminal | Folder | Command | Address |
+|----------|--------|---------|---------|
+| 1 | `invoice-api/` | `uvicorn main:app --reload --port 8000` | http://localhost:8000/docs |
+| 2 | `nextjs-structure/` | `npm run dev` | http://localhost:3000/invoices |
+
+
+### Endpoints
+
+| Method | Path | What it does | Success | Errors |
+|--------|------|--------------|---------|--------|
+| GET | `/api/health` | Check the API is running | 200 | |
+| GET | `/api/invoices` | List invoices. Optional filter: `?paid=true` or `?paid=false` | 200 | |
+| GET | `/api/invoices/{id}` | Get one invoice | 200 | 404 if it does not exist |
+| POST | `/api/invoices` | Add an invoice (`InvoiceIn` in, `InvoiceOut` out) | 201 | 422 if the data is wrong |
+| GET | `/api/invoices/report` | Totals: count, total, paid and unpaid amounts | 200 | |
+
+### Run the API Tests
+
+```bash
+cd invoice-api
+source .venv/bin/activate
+
+# Run the API tests
+pytest -q
+```
+
+The tests use FastAPI's `TestClient`, so no browser or running server is needed. They cover health, list, create (201), get one, 404, 422 (three cases), the `paid` filter, the report route and the CORS header.
+
+`pytest.ini` in this folder lets plain `pytest` work here, so there is no need for `python -m pytest`.
