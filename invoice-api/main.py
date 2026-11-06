@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -6,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from auth import create_token, current_user, verify_password
 from db import Base, engine, get_db
-from db_models import InvoiceRow, UserRow
+from db_models import InvoiceRow, JobRow, UserRow
 from models import Invoice
 from report import build_report
 from schemas import InvoiceIn, InvoiceOut, LoginIn
@@ -68,7 +69,6 @@ def create_invoice(
     user: UserRow = Depends(current_user),  # protection: 401 without a valid token
 ):
     try:
-        # reuse the validation rules in models.py
         checked = Invoice(
             client=invoice_in.client,
             amount=invoice_in.amount,
@@ -84,7 +84,38 @@ def create_invoice(
         due_date=checked.due_date,
         paid=checked.paid,
     )
-    db.add(row)        # put it in the basket
-    db.commit()        # save it
-    db.refresh(row)    # load the new id
+    db.add(row)
+    db.commit()
+    db.refresh(row)
     return row
+
+
+# ---------- Background jobs (Task 3) ----------
+
+@app.post("/api/reports", status_code=status.HTTP_201_CREATED)
+def create_report_job(
+    db: Session = Depends(get_db),
+    user: UserRow = Depends(current_user),
+):
+    job = JobRow(user_id=user.id)   # status defaults to "queued"
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    # Return immediately. The worker will do the real work later.
+    return {"id": job.id, "status": job.status}
+
+
+@app.get("/api/reports/{job_id}")
+def get_report_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    user: UserRow = Depends(current_user),
+):
+    job = db.get(JobRow, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {
+        "id": job.id,
+        "status": job.status,
+        "result": json.loads(job.result) if job.result else None,
+    }
