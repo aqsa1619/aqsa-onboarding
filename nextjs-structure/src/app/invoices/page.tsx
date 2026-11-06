@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Invoice } from "@/lib/types";
-import { apiGet } from "@/lib/api";
+import { apiGet, getToken } from "@/lib/api";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -33,16 +33,19 @@ export default function InvoicesPage() {
   }, []);
 
   // Handle form submission
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setIsSubmitting(true);
 
     try {
+      const token = getToken();
       const response = await fetch("http://localhost:8000/api/invoices", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // send the token
         },
         body: JSON.stringify({
           client,
@@ -52,9 +55,13 @@ export default function InvoicesPage() {
         }),
       });
 
+      if (response.status === 401) {
+        throw new Error("Please log in first (go to /login)");
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // FastAPI returns 422 validation errors as an array or a string in `detail`
         let message = "Failed to create invoice";
         if (Array.isArray(errorData.detail)) {

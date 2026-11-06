@@ -22,11 +22,43 @@
 - `import_json.py`: one-time import of the old `invoices.json`.
 - `tests/test_api.py`: uses `test.db` so tests do not touch real data.
 
-## Notes
 
+
+
+**Task 2: Login and protected route**
+ 
+Python (`invoice-api`)
+- `db_models.py`: added `UserRow` (id, unique email, password_hash, role).
+- `auth.py`: `hash_password`, `verify_password`, `create_token` (JWT, 60 minutes) and `current_user`.
+- `schemas.py`: added `LoginIn`.
+- `main.py`: `POST /api/auth/login` (same 401 message for unknown email and wrong password) and `Depends(current_user)` on `POST /api/invoices`.
+- `seed_user.py`: creates the first user (`admin@test.com`, role admin).
+- `tests/test_api.py`: logs in to get a token before creating invoices.
+Next.js (`nextjs-structure`)
+- `src/lib/api.ts`: added `login`, `getToken` and `logout`. The token is stored in `localStorage`.
+- `src/app/login/page.tsx`: login form that redirects to `/invoices`.
+- `src/app/invoices/page.tsx`: sends the `Authorization: Bearer` header and shows "Please log in first" on 401.
+
+
+- Create invoice without a token gave **401**.
+- Login with a wrong password gave **401**.(notes/task-2-401.png)
+- Login with the right password returned an `access_token`.
+- Create invoice with the token gave **201**.(notes/task-2-created.png)
+- Create invoice with an edited token gave **401**.
+- In the browser, the Network tab showed `Authorization: Bearer ...` on the POST request, and Local Storage showed the `token` entry. (notes/task-2-token-header.png)
+- After deleting the token, Add Invoice showed the red "Please log in first" message and a 401 in the Network tab.
+- `python -m pytest` passes. (notes/tests-passed.png)
+Reference screenshots saved in the `notes/` directory:
+
+
+## Notes
 - Data now lives in `invoice.db` on disk, so it survives a restart. `store.py` and `invoices.json` are no longer used by the API.
+- Only `POST /api/invoices` is protected. `GET` routes still work without a token.
+- `localStorage` is simple but readable by page JavaScript. A production app would often use cookies instead.
+- Use `python -m pip install ...` so packages go into the same Python that runs the code. Missing `bcrypt` and `fastapi` errors came from the wrong environment.
 - Run `python -m pytest`, not `pytest`, so the imports work.
-- Run `python import_json.py` only once.
+- Run `python import_json.py` and `python seed_user.py` only once.
 - Run `uvicorn` and `pytest` inside `invoice-api`, `npm` inside `nextjs-structure`, and `git` in the repo root.
+
 
 *Reference screenshot is saved in notes/invoices-list.png and notes/post-invoices.png

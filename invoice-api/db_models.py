@@ -11,3 +11,12 @@ class InvoiceRow(Base):
     amount: Mapped[float]
     due_date: Mapped[date]
     paid: Mapped[bool] = mapped_column(default=False)
+
+
+class UserRow(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    password_hash: Mapped[str]                       # never the real password
+    role: Mapped[str] = mapped_column(default="editor")  # admin / editor

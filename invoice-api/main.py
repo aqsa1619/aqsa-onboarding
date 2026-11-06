@@ -4,13 +4,14 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from auth import create_token, current_user, verify_password
 from db import Base, engine, get_db
-from db_models import InvoiceRow
+from db_models import InvoiceRow, UserRow
 from models import Invoice
 from report import build_report
-from schemas import InvoiceIn, InvoiceOut
+from schemas import InvoiceIn, InvoiceOut, LoginIn
 
-Base.metadata.create_all(engine)  # creates invoice.db and the table if missing
+Base.metadata.create_all(engine)  # creates invoice.db and the tables if missing
 
 app = FastAPI(title="Invoice API", version="1.0.0")
 
@@ -33,6 +34,14 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.post("/api/auth/login")
+def login(data: LoginIn, db: Session = Depends(get_db)):
+    user = db.query(UserRow).filter(UserRow.email == data.email).first()
+    if user is None or not verify_password(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Wrong email or password")
+    return {"access_token": create_token(user), "token_type": "bearer"}
+
+
 @app.get("/api/invoices", response_model=List[InvoiceOut])
 def list_invoices(db: Session = Depends(get_db)):
     return db.query(InvoiceRow).order_by(InvoiceRow.id).all()
@@ -53,9 +62,13 @@ def get_invoice(id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
-def create_invoice(invoice_in: InvoiceIn, db: Session = Depends(get_db)):
+def create_invoice(
+    invoice_in: InvoiceIn,
+    db: Session = Depends(get_db),
+    user: UserRow = Depends(current_user),  # protection: 401 without a valid token
+):
     try:
-        # reuse your existing validation in models.py
+        # reuse the validation rules in models.py
         checked = Invoice(
             client=invoice_in.client,
             amount=invoice_in.amount,
