@@ -1,16 +1,19 @@
-from fastapi import FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from datetime import date
 
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from db import Base, engine, get_db
+from db_models import InvoiceRow
 from models import Invoice
-from schemas import InvoiceIn, InvoiceOut
-import store
 from report import build_report
+from schemas import InvoiceIn, InvoiceOut
+
+Base.metadata.create_all(engine)  # creates invoice.db and the table if missing
 
 app = FastAPI(title="Invoice API", version="1.0.0")
 
-# Configure CORS for your frontend
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -24,66 +27,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_FILE = "invoices.json"
 
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
 
+
 @app.get("/api/invoices", response_model=List[InvoiceOut])
-def list_invoices():
-    invoices = store.load_invoices(DB_FILE)
-    return [
-        InvoiceOut(
-            id=idx + 1,
-            client=inv.client,
-            amount=inv.amount,
-            due_date=inv.due_date,
-            paid=inv.paid
-        )
-        for idx, inv in enumerate(invoices)
-    ]
+def list_invoices(db: Session = Depends(get_db)):
+    return db.query(InvoiceRow).order_by(InvoiceRow.id).all()
+
 
 @app.get("/api/invoices/report")
-def get_invoice_report():
-    invoices = store.load_invoices(DB_FILE)
-    return build_report(invoices)
+def get_invoice_report(db: Session = Depends(get_db)):
+    rows = db.query(InvoiceRow).all()
+    return build_report(rows)
+
 
 @app.get("/api/invoices/{id}", response_model=InvoiceOut)
-def get_invoice(id: int):
-    invoices = store.load_invoices(DB_FILE)
-    if id < 1 or id > len(invoices):
+def get_invoice(id: int, db: Session = Depends(get_db)):
+    row = db.get(InvoiceRow, id)
+    if row is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    inv = invoices[id - 1]
-    return InvoiceOut(
-        id=id,
-        client=inv.client,
-        amount=inv.amount,
-        due_date=inv.due_date,
-        paid=inv.paid
-    )
+    return row
+
 
 @app.post("/api/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
-def create_invoice(invoice_in: InvoiceIn):
+def create_invoice(invoice_in: InvoiceIn, db: Session = Depends(get_db)):
     try:
-        new_invoice = Invoice(
+        # reuse your existing validation in models.py
+        checked = Invoice(
             client=invoice_in.client,
             amount=invoice_in.amount,
             due_date=invoice_in.due_date,
-            paid=invoice_in.paid  # <-- Change this from getattr to invoice_in.paid
+            paid=invoice_in.paid,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    
-    invoices = store.load_invoices(DB_FILE)
-    invoices.append(new_invoice)
-    store.save_invoices(DB_FILE, invoices)
-    
-    new_id = len(invoices)
-    return InvoiceOut(
-        id=new_id,
-        client=new_invoice.client,
-        amount=new_invoice.amount,
-        due_date=new_invoice.due_date,
-        paid=new_invoice.paid
+
+    row = InvoiceRow(
+        client=checked.client,
+        amount=checked.amount,
+        due_date=checked.due_date,
+        paid=checked.paid,
     )
+    db.add(row)        # put it in the basket
+    db.commit()        # save it
+    db.refresh(row)    # load the new id
+    return row
