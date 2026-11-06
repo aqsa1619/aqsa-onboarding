@@ -62,6 +62,12 @@ Reference screenshots saved in the `notes/` directory
 - A few seconds later the status was `done` with the report result. ![done](notes/task-3-done.png)
 - The worker terminal printed `Job 1: running` and `Job 1: done`. ![worker](notes/task-3-runnin.png)
 
+**Task 4: Tests**
+- `tests/test_auth.py`: login works, wrong password gives 401, protected route needs a token. Extra tests cover an unknown email, a fake token, an edited token, a valid token, and the report job (needs a token, starts as `queued`).
+- Tests use `test.db` and a fixture that creates the test user, so real data is never touched.
+
+- `python -m pytest -v` passes. ![tests](notes/task-4-tests-passed.png)
+
 ## Notes
 
 - Data now lives in `invoice.db` on disk, so it survives a restart. `store.py` and `invoices.json` are no longer used by the API.
