@@ -15,8 +15,8 @@ class Base(DeclarativeBase):
 
 
 def get_db():  # gives each request its own session ("basket")
-    db = SessionLocal()
+    db = SessionLocal() # make a new session
     try:
-        yield db
+        yield db # hand it to the endpoint
     finally:
-        db.close()
+        db.close() # always close it
